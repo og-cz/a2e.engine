@@ -16,10 +16,12 @@ public:
     void clear(std::uint32_t) override { ++clear_count; }
     void fill_rectangle(double, double, double, double, std::uint32_t) override { ++rectangle_count; }
     void fill_polygon(const std::vector<std::pair<double, double>>&, std::uint32_t) override { ++polygon_count; }
+    void draw_texture(const a2e::Texture&, int, int, int, int, double, double, double, double) override { ++texture_count; }
     void present() override { ++present_count; }
     int clear_count = 0;
     int rectangle_count = 0;
     int polygon_count = 0;
+    int texture_count = 0;
     int present_count = 0;
 };
 
@@ -38,6 +40,7 @@ public:
     void fill_rectangle(double, double, double, double, std::uint32_t) override {}
     void present() override {}
     void fill_polygon(const std::vector<std::pair<double, double>>&, std::uint32_t) override {}
+    void draw_texture(const a2e::Texture&, int, int, int, int, double, double, double, double) override {}
 
 private:
     a2e::InputState input_;
@@ -128,6 +131,20 @@ void resources_and_configuration_work() {
     resources.register_resource("number", std::make_shared<int>(42));
     assert(*resources.get<int>("number") == 42);
     assert(resources.size() == 1);
+
+    auto texture = std::make_shared<a2e::Texture>(2, 2, std::vector<std::uint32_t>{
+        0x00FF0000, 0x0000FF00, 0x000000FF, 0x00FFFFFF});
+    resources.register_resource("test_texture", texture);
+    assert(resources.get<a2e::Texture>("test_texture")->pixel(1, 0) == 0x0000FF00);
+    a2e::Scene sprite_scene("Sprites");
+    auto& sprite_entity = sprite_scene.create_entity("Sprite Entity");
+    sprite_entity.set_renderable({32.0, 32.0, 0x00FFFFFF, 0, true});
+    sprite_entity.set_sprite({texture, 0, 0, 2, 2});
+    assert(sprite_entity.sprite()->texture == texture);
+    a2e::Basic2DRenderer sprite_renderer;
+    FakeTarget sprite_target;
+    sprite_renderer.render(sprite_scene, sprite_target, a2e::Camera{0.0, 0.0, 1.0});
+    assert(sprite_target.texture_count == 1);
 
     a2e::Clock clock;
     assert(clock.frame_count() == 0);
