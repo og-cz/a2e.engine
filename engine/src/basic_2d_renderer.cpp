@@ -54,6 +54,15 @@ void Basic2DRenderer::render(const Scene& scene, RenderTarget& target, const Cam
             screen_y + bounds_height < 0.0 || screen_y - bounds_height > target.height()) {
             continue;
         }
+        if (const auto* sprite = entity->sprite(); sprite && sprite->texture && transform.rotation == 0.0) {
+            const int source_width = sprite->source_width > 0 ? sprite->source_width : sprite->texture->width();
+            const int source_height = sprite->source_height > 0 ? sprite->source_height : sprite->texture->height();
+            target.draw_texture(*sprite->texture, sprite->source_x, sprite->source_y,
+                                source_width, source_height,
+                                screen_x - bounds_width, screen_y - bounds_height,
+                                screen_x + bounds_width, screen_y + bounds_height);
+            continue;
+        }
         if (transform.rotation == 0.0) {
             target.fill_rectangle(screen_x - bounds_width, screen_y - bounds_height,
                                   screen_x + bounds_width, screen_y + bounds_height,
