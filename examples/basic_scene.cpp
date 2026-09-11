@@ -88,6 +88,7 @@ private:
 int main() {
     a2e::EngineConfig config;
     config.title = "A2E World Demo";
+    config.fixed_update_hz = 60.0;
 
     a2e::Scene scene("Demo Scene");
     auto& tilemap = scene.create_tilemap(20, 12, 40.0, 0x00232C35);
@@ -142,7 +143,7 @@ int main() {
     application.add_system(std::make_unique<CameraControlSystem>(application.camera()));
     application.add_system(std::make_unique<MouseMarkerSystem>(application.camera(), marker.id(),
                                                                 config.width, config.height));
-    application.add_system(std::make_unique<a2e::PhysicsSystem>(a2e::PhysicsSystem::CollisionCallback{}, 0.0,
-                                                                  &application.events(), 0.05));
+    application.add_fixed_system(std::make_unique<a2e::PhysicsSystem>(a2e::PhysicsSystem::CollisionCallback{}, 0.0,
+                                                                       &application.events(), 0.05));
     return application.run();
 }
