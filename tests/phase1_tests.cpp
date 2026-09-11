@@ -181,6 +181,11 @@ void input_and_system_pipeline_work() {
     assert(!input.mouse_pressed(a2e::MouseButton::Left));
     input.set_mouse_button(a2e::MouseButton::Left, false);
     assert(input.mouse_released(a2e::MouseButton::Left));
+    input.set_mouse_wheel(120);
+    input.set_mouse_wheel(-40);
+    assert(input.mouse_wheel_delta() == 80);
+    input.begin_frame();
+    assert(input.mouse_wheel_delta() == 0);
 
     a2e::GamepadState gamepad;
     gamepad.set_button(a2e::GamepadButton::South, true);
