@@ -6,10 +6,12 @@ Phase 2 currently contains the first world and update boundaries:
 - Camera conversion is available in both directions for future cursor picking and world interaction.
 - `Renderable::layer` provides stable ordering for basic 2D drawing.
 - `TileMap` stores colored cells, validates coordinates, and is owned by a scene.
+- `Texture` stores validated pixel data as a resource, and `Sprite` references a shared texture with an optional source rectangle.
 - Entities support type-indexed custom components with add, replace, get, and remove operations.
 - Entities can be deactivated without destruction; inactive entities are excluded from rendering and physics until reactivated.
 - `SceneManager` provides named scene creation, lookup, active-scene switching, destruction, and safe fallback behavior without coupling scenes to a game-specific transition policy.
 - `Basic2DRenderer` draws tilemaps before layered entities.
+- Non-rotated sprites are drawn through the generic texture render-target path; rotated sprites currently use the procedural fallback.
 - Renderables with nonzero transform rotation use the backend-neutral polygon primitive; ordinary rectangles retain the fast rectangle path.
 - Renderables can be hidden with `visible`; the renderer also culls entities outside the camera viewport using rotation-aware bounds.
 - Camera movement policy remains example-owned; the demo maps `+` and `-` to bounded zoom controls through `InputMap`.
@@ -27,4 +29,4 @@ Phase 2 currently contains the first world and update boundaries:
 
 `Application` owns systems and invokes them in registration order after the existing update callback. The Win32 window translates a small initial set of keyboard keys into `InputState`; other backends can provide the same interface without exposing platform types to game systems.
 
-Textures, sprite sheets, physics, navigation, and autonomous-agent behavior remain out of scope until these boundaries have more coverage.
+Sprite sheets, physics, navigation, and autonomous-agent behavior remain out of scope until these boundaries have more coverage.
