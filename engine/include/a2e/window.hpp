@@ -1,6 +1,7 @@
 #pragma once
 
 #include "a2e/input.hpp"
+#include "a2e/texture.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -19,6 +20,9 @@ public:
     virtual void fill_rectangle(double left, double top, double right, double bottom, std::uint32_t color) = 0;
     virtual void fill_polygon(const std::vector<std::pair<double, double>>& points,
                               std::uint32_t color) = 0;
+    virtual void draw_texture(const Texture& texture, int source_x, int source_y,
+                              int source_width, int source_height,
+                              double left, double top, double right, double bottom) = 0;
     virtual void present() = 0;
 };
 
