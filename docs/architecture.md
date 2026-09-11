@@ -8,6 +8,7 @@ A2E is a reusable 2D engine, not a game and not an AI model. The repository keep
 - `EngineConfig` validates runtime settings.
 - `Clock` measures bounded frame delta time.
 - `Application::clock()` exposes the clock read-only for diagnostics and future debug overlays.
+- `FixedUpdateSystem` provides deterministic simulation updates when `EngineConfig::fixed_update_hz` is enabled; variable systems continue to run once per rendered frame.
 - `Scene` owns entity lifetime; `Entity` contains identity, activation state, `Transform`, and optional `Renderable` data. Inactive entities remain available for reactivation but are skipped by rendering and physics.
 - `SceneManager` owns named scenes, active-scene selection, destruction, and fallback selection. The current `Application` remains single-scene for compatibility, while future lifecycle work can delegate to the manager.
 - Scene and scene-manager lookups provide const overloads for read-only systems and inspection tools.
