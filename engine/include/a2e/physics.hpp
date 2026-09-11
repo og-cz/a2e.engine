@@ -38,13 +38,14 @@ struct CollisionExitEvent {
     double penetration = 0.0;
 };
 
-class PhysicsSystem final : public UpdateSystem {
+class PhysicsSystem final : public UpdateSystem, public FixedUpdateSystem {
 public:
     using CollisionCallback = std::function<void(const CollisionEvent&)>;
 
     explicit PhysicsSystem(CollisionCallback callback = {}, double gravity_y = 0.0,
                            EventBus* events = nullptr, double max_step_seconds = 0.0);
     void update(Scene& scene, const InputState& input, double delta_seconds) override;
+    void fixed_update(Scene& scene, const InputState& input, double fixed_delta_seconds) override;
 
 private:
     void update_step(Scene& scene, double delta_seconds);
