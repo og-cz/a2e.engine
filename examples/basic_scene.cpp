@@ -38,12 +38,18 @@ private:
 
 class CameraControlSystem final : public a2e::UpdateSystem {
 public:
-    explicit CameraControlSystem(a2e::Camera& camera) : camera_(camera) {
+    CameraControlSystem(a2e::Camera& camera, std::uint64_t target_id)
+        : camera_(camera), target_id_(target_id) {
         actions_.bind("zoom_in", a2e::Key::ZoomIn);
         actions_.bind("zoom_out", a2e::Key::ZoomOut);
     }
 
-    void update(a2e::Scene&, const a2e::InputState& input, double delta_seconds) override {
+    void update(a2e::Scene& scene, const a2e::InputState& input, double delta_seconds) override {
+        const auto* target = scene.find_entity(target_id_);
+        if (target != nullptr) {
+            camera_.x = target->transform().x;
+            camera_.y = target->transform().y;
+        }
         if (actions_.is_action_down(input, "zoom_in")) camera_.zoom += delta_seconds;
         if (actions_.is_action_down(input, "zoom_out")) camera_.zoom -= delta_seconds;
         camera_.zoom += static_cast<double>(input.mouse_wheel_delta()) / 1200.0;
@@ -53,6 +59,7 @@ public:
 
 private:
     a2e::Camera& camera_;
+    std::uint64_t target_id_;
     a2e::InputMap actions_;
 };
 
@@ -109,8 +116,11 @@ int main() {
     auto& marker = scene.create_entity("World Marker");
     marker.transform().x = 220.0;
     marker.transform().y = 140.0;
-    marker.transform().rotation = 0.35;
+    marker.transform().rotation = 0.0;
     marker.set_renderable({32.0, 32.0, 0x0048D1CC, 1});
+    auto marker_texture = std::make_shared<a2e::Texture>(2, 2, std::vector<std::uint32_t>{
+        0x00FFFFFF, 0x0048D1CC, 0x0048D1CC, 0x00FFFFFF});
+    marker.set_sprite({marker_texture, 0, 0, 2, 2});
 
     auto& left_wall = scene.create_entity("Left Boundary");
     left_wall.transform().x = -24.0;
@@ -133,6 +143,7 @@ int main() {
     bottom_wall.set_collider({848.0, 48.0, 2, 1, false});
 
     a2e::Application application(config, std::move(scene), std::make_unique<a2e::Basic2DRenderer>());
+    application.resources().register_resource("marker_texture", marker_texture);
     application.events().subscribe<a2e::CollisionEnterEvent>([](const a2e::CollisionEnterEvent& event) {
         a2e::log_info("collision entered between entities " + std::to_string(event.first_entity) +
                       " and " + std::to_string(event.second_entity));
@@ -140,7 +151,7 @@ int main() {
     auto controls = std::make_unique<PlayerControlSystem>();
     controls->set_player_id(player.id());
     application.add_system(std::move(controls));
-    application.add_system(std::make_unique<CameraControlSystem>(application.camera()));
+    application.add_system(std::make_unique<CameraControlSystem>(application.camera(), player.id()));
     application.add_system(std::make_unique<MouseMarkerSystem>(application.camera(), marker.id(),
                                                                 config.width, config.height));
     application.add_fixed_system(std::make_unique<a2e::PhysicsSystem>(a2e::PhysicsSystem::CollisionCallback{}, 0.0,
