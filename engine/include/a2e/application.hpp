@@ -37,6 +37,7 @@ public:
     EventBus& events() { return events_; }
     Camera& camera() { return camera_; }
     const Camera& camera() const { return camera_; }
+    const Clock& clock() const { return clock_; }
     const InputState& input() const { return window_->input(); }
 
 private:
