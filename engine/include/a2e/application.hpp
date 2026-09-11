@@ -29,6 +29,7 @@ public:
 
     void set_update_callback(std::function<void(double)> callback);
     void add_system(std::unique_ptr<UpdateSystem> system);
+    void add_fixed_system(std::unique_ptr<FixedUpdateSystem> system);
     int run();
     void stop();
     bool is_running() const { return running_; }
@@ -51,6 +52,8 @@ private:
     Clock clock_;
     std::function<void(double)> update_callback_;
     std::vector<std::unique_ptr<UpdateSystem>> systems_;
+    std::vector<std::unique_ptr<FixedUpdateSystem>> fixed_systems_;
+    double fixed_accumulator_ = 0.0;
     bool running_ = false;
 };
 
