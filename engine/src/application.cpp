@@ -28,10 +28,16 @@ void Application::add_system(std::unique_ptr<UpdateSystem> system) {
     systems_.push_back(std::move(system));
 }
 
+void Application::add_fixed_system(std::unique_ptr<FixedUpdateSystem> system) {
+    if (!system) throw std::invalid_argument("fixed update system cannot be null");
+    fixed_systems_.push_back(std::move(system));
+}
+
 int Application::run() {
     if (!window_) window_ = create_window(config_.width, config_.height, config_.title, config_.background_color);
     running_ = true;
     clock_.reset();
+    fixed_accumulator_ = 0.0;
     log_info("started scene '" + scene_.name() + "'");
 
     const auto target_frame = std::chrono::duration<double>(1.0 / config_.target_fps);
@@ -39,6 +45,19 @@ int Application::run() {
         const auto frame_start = std::chrono::steady_clock::now();
         if (!window_->process_events()) break;
         const double delta_seconds = clock_.tick();
+        if (config_.fixed_update_hz > 0.0 && !fixed_systems_.empty()) {
+            const double fixed_delta = 1.0 / config_.fixed_update_hz;
+            fixed_accumulator_ += delta_seconds;
+            int steps = 0;
+            while (fixed_accumulator_ >= fixed_delta && steps < 8) {
+                for (const auto& system : fixed_systems_) {
+                    system->fixed_update(scene_, window_->input(), fixed_delta);
+                }
+                fixed_accumulator_ -= fixed_delta;
+                ++steps;
+            }
+            if (steps == 8) fixed_accumulator_ = 0.0;
+        }
         if (update_callback_) update_callback_(delta_seconds);
         for (const auto& system : systems_) {
             system->update(scene_, window_->input(), delta_seconds);
