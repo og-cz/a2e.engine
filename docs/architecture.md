@@ -21,6 +21,7 @@ A2E is a reusable 2D engine, not a game and not an AI model. The repository keep
 - Physics events expose contact geometry so gameplay does not need to duplicate collider calculations.
 - `Window` is both the event/presentation boundary and a render target. Phase 1 supplies a Win32/GDI implementation.
 - `ResourceManager` is a typed cache boundary for future assets.
+- `Texture` is a resource-owned pixel surface and `Sprite` is entity data that references shared texture resources; renderers consume these through `RenderTarget`.
 - Logging is a small replaceable free-function boundary.
 
 ## Loop
