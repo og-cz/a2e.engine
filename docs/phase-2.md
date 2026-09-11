@@ -20,6 +20,7 @@ Phase 2 currently contains the first world and update boundaries:
 - `InputMap` can also bind mouse buttons to the same logical actions; the demo uses `place_marker` rather than hard-coding the left button in gameplay logic.
 - `InputMap` also supports gamepad button bindings and queries against `GamepadState`, keeping device-specific input behind action names.
 - `InputState` also stores mouse position and button transitions; the Win32 backend translates mouse messages without exposing Win32 types to systems.
+- `InputState` accumulates mouse-wheel movement for the current frame and resets the delta at the next frame boundary.
 - `GamepadState` defines portable button and left-stick state for a future backend; no platform-specific gamepad dependency is required yet.
 - `UpdateSystem` is an ordered interface for systems that receive the scene, input, and frame delta.
 
