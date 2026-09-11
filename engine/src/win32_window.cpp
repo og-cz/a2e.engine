@@ -102,6 +102,28 @@ public:
         DeleteObject(brush);
     }
 
+    void draw_texture(const Texture& texture, int source_x, int source_y, int source_width,
+                      int source_height, double left, double top, double right, double bottom) override {
+        BITMAPINFO info{};
+        info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        info.bmiHeader.biWidth = texture.width();
+        info.bmiHeader.biHeight = -texture.height();
+        info.bmiHeader.biPlanes = 1;
+        info.bmiHeader.biBitCount = 32;
+        info.bmiHeader.biCompression = BI_RGB;
+        std::vector<std::uint32_t> pixels;
+        pixels.reserve(texture.pixels().size());
+        for (const auto pixel : texture.pixels()) {
+            pixels.push_back(((pixel & 0x000000ffu) << 16) |
+                             (pixel & 0x0000ff00u) |
+                             ((pixel & 0x00ff0000u) >> 16));
+        }
+        StretchDIBits(backbuffer_, static_cast<int>(left), static_cast<int>(top),
+                      static_cast<int>(right - left), static_cast<int>(bottom - top),
+                      source_x, source_y, source_width, source_height, pixels.data(), &info,
+                      DIB_RGB_COLORS, SRCCOPY);
+    }
+
     void present() override {
         BitBlt(dc_, 0, 0, width_, height_, backbuffer_, 0, 0, SRCCOPY);
     }
