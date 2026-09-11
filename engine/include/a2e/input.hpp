@@ -49,6 +49,7 @@ public:
     void begin_frame() {
         previous_ = current_;
         previous_mouse_buttons_ = mouse_buttons_;
+        mouse_wheel_delta_ = 0;
     }
     void set_key(Key key, bool down) { current_[index(key)] = down; }
 
@@ -68,6 +69,8 @@ public:
     bool was_mouse_down(MouseButton button) const { return previous_mouse_buttons_[button_index(button)]; }
     bool mouse_pressed(MouseButton button) const { return is_mouse_down(button) && !was_mouse_down(button); }
     bool mouse_released(MouseButton button) const { return !is_mouse_down(button) && was_mouse_down(button); }
+    void set_mouse_wheel(int delta) { mouse_wheel_delta_ += delta; }
+    int mouse_wheel_delta() const { return mouse_wheel_delta_; }
 
 private:
     static constexpr std::size_t index(Key key) { return static_cast<std::size_t>(key); }
@@ -79,6 +82,7 @@ private:
     std::array<bool, static_cast<std::size_t>(MouseButton::Count)> previous_mouse_buttons_{};
     int mouse_x_ = 0;
     int mouse_y_ = 0;
+    int mouse_wheel_delta_ = 0;
 };
 
 class GamepadState {
