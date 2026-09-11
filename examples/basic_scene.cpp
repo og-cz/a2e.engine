@@ -46,6 +46,7 @@ public:
     void update(a2e::Scene&, const a2e::InputState& input, double delta_seconds) override {
         if (actions_.is_action_down(input, "zoom_in")) camera_.zoom += delta_seconds;
         if (actions_.is_action_down(input, "zoom_out")) camera_.zoom -= delta_seconds;
+        camera_.zoom += static_cast<double>(input.mouse_wheel_delta()) / 1200.0;
         if (camera_.zoom < 0.25) camera_.zoom = 0.25;
         if (camera_.zoom > 3.0) camera_.zoom = 3.0;
     }
