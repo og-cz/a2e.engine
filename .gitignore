@@ -1,0 +1,39 @@
+# Local project blueprint
+BLUEPRINT.md
+
+# CMake and generated build trees
+build/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+build.ninja
+.ninja_deps
+.ninja_log
+compile_commands.json
+
+# C/C++ compiler output
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.dll.a
+*.exe
+*.exp
+*.pdb
+*.ilk
+*.d
+
+# Visual Studio and editor state
+.vs/
+.vscode/
+*.suo
+*.user
+*.vcxproj.user
+
+# Operating-system files
+.DS_Store
+Thumbs.db
