@@ -13,6 +13,7 @@ Phase 2 currently contains the first world and update boundaries:
 - Renderables with nonzero transform rotation use the backend-neutral polygon primitive; ordinary rectangles retain the fast rectangle path.
 - Renderables can be hidden with `visible`; the renderer also culls entities outside the camera viewport using rotation-aware bounds.
 - Camera movement policy remains example-owned; the demo maps `+` and `-` to bounded zoom controls through `InputMap`.
+- The demo also maps mouse-wheel movement to camera zoom, using the per-frame wheel delta.
 - The demo uses `Camera::screen_to_world` to place the marker under the cursor while the left mouse button is held.
 
 - `InputState` stores backend-neutral key state and exposes `is_down`, `pressed`, and `released` queries.
