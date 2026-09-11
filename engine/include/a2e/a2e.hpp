@@ -13,6 +13,7 @@
 #include "a2e/scene.hpp"
 #include "a2e/scene_manager.hpp"
 #include "a2e/time.hpp"
+#include "a2e/texture.hpp"
 #include "a2e/tilemap.hpp"
 #include "a2e/transform.hpp"
 #include "a2e/update_system.hpp"
