@@ -120,6 +120,10 @@ void PhysicsSystem::update(Scene& scene, const InputState&, double delta_seconds
     }
 }
 
+void PhysicsSystem::fixed_update(Scene& scene, const InputState& input, double fixed_delta_seconds) {
+    update(scene, input, fixed_delta_seconds);
+}
+
 void PhysicsSystem::update_step(Scene& scene, double delta_seconds) {
     for (const auto& entity : scene.entities()) {
         if (!entity->active()) continue;
