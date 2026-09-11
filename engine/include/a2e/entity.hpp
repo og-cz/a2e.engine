@@ -1,6 +1,7 @@
 #pragma once
 
 #include "a2e/physics_components.hpp"
+#include "a2e/texture.hpp"
 #include "a2e/transform.hpp"
 
 #include <any>
@@ -35,6 +36,9 @@ public:
     Renderable* renderable() { return renderable_ ? &*renderable_ : nullptr; }
     const Renderable* renderable() const { return renderable_ ? &*renderable_ : nullptr; }
     void set_renderable(Renderable renderable) { renderable_ = renderable; }
+    Sprite* sprite() { return sprite_ ? &*sprite_ : nullptr; }
+    const Sprite* sprite() const { return sprite_ ? &*sprite_ : nullptr; }
+    void set_sprite(Sprite sprite) { sprite_ = std::move(sprite); }
     Collider* collider() { return collider_ ? &*collider_ : nullptr; }
     const Collider* collider() const { return collider_ ? &*collider_ : nullptr; }
     void set_collider(Collider collider) { collider_ = collider; }
@@ -75,6 +79,7 @@ private:
     bool active_ = true;
     Transform transform_;
     std::optional<Renderable> renderable_;
+    std::optional<Sprite> sprite_;
     std::optional<Collider> collider_;
     std::optional<RigidBody> rigid_body_;
     std::unordered_map<std::type_index, std::any> components_;
