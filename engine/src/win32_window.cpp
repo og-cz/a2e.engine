@@ -60,6 +60,8 @@ public:
             } else if (message.message == WM_MOUSEMOVE) {
                 input_.set_mouse_position(static_cast<short>(LOWORD(message.lParam)),
                                           static_cast<short>(HIWORD(message.lParam)));
+            } else if (message.message == WM_MOUSEWHEEL) {
+                input_.set_mouse_wheel(GET_WHEEL_DELTA_WPARAM(message.wParam));
             } else if (message.message == WM_LBUTTONDOWN || message.message == WM_LBUTTONUP ||
                        message.message == WM_RBUTTONDOWN || message.message == WM_RBUTTONUP ||
                        message.message == WM_MBUTTONDOWN || message.message == WM_MBUTTONUP) {
