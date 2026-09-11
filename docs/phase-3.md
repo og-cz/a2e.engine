@@ -17,3 +17,5 @@ Current limitations:
 - Negative maximum substep sizes are rejected. Contact exits are generated when a previously active pair no longer exists, including after an entity is removed from a scene.
 
 The basic example composes the movement system and physics system in order. The player has a dynamic collider, while four invisible static colliders constrain it to the demo world. These boundaries belong to the example, not to the engine. Contact-enter events are routed through `Application::events()` and logged by the example.
+
+Physics implements `FixedUpdateSystem` and the demo runs it at 60 Hz through the fixed-timestep pipeline. Input and camera systems remain variable-rate systems.
