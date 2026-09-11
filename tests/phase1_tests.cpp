@@ -207,6 +207,8 @@ void input_and_system_pipeline_work() {
     application.add_system(std::make_unique<RecordingSystem>(order, "second"));
     application.run();
     assert((order == std::vector<std::string>{"first", "second"}));
+    assert(application.clock().frame_count() == 1);
+    assert(application.clock().delta_seconds() >= 0.0);
 }
 
 void camera_validation_works() {
