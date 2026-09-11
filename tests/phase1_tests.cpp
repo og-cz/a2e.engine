@@ -62,6 +62,18 @@ private:
     std::string name_;
 };
 
+class FixedRecordingSystem final : public a2e::FixedUpdateSystem {
+public:
+    explicit FixedRecordingSystem(int& calls) : calls_(calls) {}
+    void fixed_update(a2e::Scene&, const a2e::InputState&, double delta_seconds) override {
+        ++calls_;
+        assert(delta_seconds > 0.0);
+    }
+
+private:
+    int& calls_;
+};
+
 struct TestEvent {
     int value = 0;
 };
@@ -105,6 +117,11 @@ void resources_and_configuration_work() {
     config.validate();
     bool rejected = false;
     try { a2e::EngineConfig invalid{0}; invalid.validate(); } catch (const std::invalid_argument&) { rejected = true; }
+    assert(rejected);
+    a2e::EngineConfig invalid_fixed;
+    invalid_fixed.fixed_update_hz = -1.0;
+    rejected = false;
+    try { invalid_fixed.validate(); } catch (const std::invalid_argument&) { rejected = true; }
     assert(rejected);
 
     a2e::ResourceManager resources;
@@ -205,13 +222,18 @@ void input_and_system_pipeline_work() {
 
     std::vector<std::string> order;
     auto window = std::make_unique<FakeWindow>();
+    a2e::EngineConfig pipeline_config;
+    pipeline_config.fixed_update_hz = 100000.0;
     a2e::Application application(
-        a2e::EngineConfig{}, a2e::Scene("Pipeline Scene"),
+        pipeline_config, a2e::Scene("Pipeline Scene"),
         std::make_unique<FakeRenderer>(), std::move(window));
     application.add_system(std::make_unique<RecordingSystem>(order, "first"));
     application.add_system(std::make_unique<RecordingSystem>(order, "second"));
+    int fixed_calls = 0;
+    application.add_fixed_system(std::make_unique<FixedRecordingSystem>(fixed_calls));
     application.run();
     assert((order == std::vector<std::string>{"first", "second"}));
+    assert(fixed_calls > 0);
     assert(application.clock().frame_count() == 1);
     assert(application.clock().delta_seconds() >= 0.0);
 }
