@@ -112,6 +112,16 @@ void resources_and_configuration_work() {
     assert(*resources.get<int>("number") == 42);
     assert(resources.size() == 1);
 
+    a2e::Clock clock;
+    assert(clock.frame_count() == 0);
+    clock.tick();
+    assert(clock.frame_count() == 1);
+    assert(clock.delta_seconds() >= 0.0);
+    assert(clock.total_seconds() >= clock.delta_seconds());
+    clock.reset();
+    assert(clock.frame_count() == 0);
+    assert(clock.total_seconds() == 0.0);
+
     a2e::Scene component_scene("Components");
     auto& component_entity = component_scene.create_entity("Custom Entity");
     component_entity.add_component<Health>(75);
