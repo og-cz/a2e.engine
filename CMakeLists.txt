@@ -13,6 +13,7 @@ add_library(a2e_engine
     engine/src/camera.cpp
     engine/src/config.cpp
     engine/src/logging.cpp
+    engine/src/navigation.cpp
     engine/src/physics.cpp
     engine/src/scene.cpp
     engine/src/time.cpp
