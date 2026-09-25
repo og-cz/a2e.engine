@@ -119,16 +119,10 @@ public:
         info.bmiHeader.biPlanes = 1;
         info.bmiHeader.biBitCount = 32;
         info.bmiHeader.biCompression = BI_RGB;
-        std::vector<std::uint32_t> pixels;
-        pixels.reserve(texture.pixels().size());
-        for (const auto pixel : texture.pixels()) {
-            pixels.push_back(((pixel & 0x000000ffu) << 16) |
-                             (pixel & 0x0000ff00u) |
-                             ((pixel & 0x00ff0000u) >> 16));
-        }
+        // 0x00RRGGBB words are already in the BGRX byte order a 32-bit DIB expects.
         StretchDIBits(backbuffer_, static_cast<int>(left), static_cast<int>(top),
                       static_cast<int>(right - left), static_cast<int>(bottom - top),
-                      source_x, source_y, source_width, source_height, pixels.data(), &info,
+                      source_x, source_y, source_width, source_height, texture.pixels().data(), &info,
                       DIB_RGB_COLORS, SRCCOPY);
     }
 
