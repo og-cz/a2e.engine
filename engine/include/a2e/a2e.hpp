@@ -1,6 +1,8 @@
 #pragma once
 
+#include "a2e/animation.hpp"
 #include "a2e/application.hpp"
+#include "a2e/audio.hpp"
 #include "a2e/camera.hpp"
 #include "a2e/config.hpp"
 #include "a2e/entity.hpp"
