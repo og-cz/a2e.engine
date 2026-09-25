@@ -9,6 +9,7 @@
 #include "a2e/events.hpp"
 #include "a2e/input.hpp"
 #include "a2e/logging.hpp"
+#include "a2e/navigation.hpp"
 #include "a2e/renderer.hpp"
 #include "a2e/physics.hpp"
 #include "a2e/player_controller.hpp"
