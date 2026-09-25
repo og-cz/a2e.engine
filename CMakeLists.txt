@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(a2e_engine
+    engine/src/animation.cpp
     engine/src/application.cpp
     engine/src/basic_2d_renderer.cpp
     engine/src/camera.cpp
