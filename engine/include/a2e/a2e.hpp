@@ -9,6 +9,7 @@
 #include "a2e/logging.hpp"
 #include "a2e/renderer.hpp"
 #include "a2e/physics.hpp"
+#include "a2e/player_controller.hpp"
 #include "a2e/resources.hpp"
 #include "a2e/scene.hpp"
 #include "a2e/scene_manager.hpp"
