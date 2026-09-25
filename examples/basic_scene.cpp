@@ -88,9 +88,12 @@ int main() {
     marker.transform().y = 140.0;
     marker.transform().rotation = 0.0;
     marker.set_renderable({32.0, 32.0, 0x0048D1CC, 1});
-    auto marker_texture = std::make_shared<a2e::Texture>(2, 2, std::vector<std::uint32_t>{
-        0x00FFFFFF, 0x0048D1CC, 0x0048D1CC, 0x00FFFFFF});
+    // Two 2x2 frames side by side: a checker and its inverse.
+    auto marker_texture = std::make_shared<a2e::Texture>(4, 2, std::vector<std::uint32_t>{
+        0x00FFFFFF, 0x0048D1CC, 0x0048D1CC, 0x00FFFFFF,
+        0x0048D1CC, 0x00FFFFFF, 0x00FFFFFF, 0x0048D1CC});
     marker.set_sprite({marker_texture, 0, 0, 2, 2});
+    marker.add_component<a2e::Animator>().add_state("pulse", a2e::AnimationClip::from_grid(2, 2, 2, 0, 2, 0.25));
 
     auto& left_wall = scene.create_entity("Left Boundary");
     left_wall.transform().x = -24.0;
@@ -112,16 +115,25 @@ int main() {
     bottom_wall.transform().y = 504.0;
     bottom_wall.set_collider({848.0, 48.0, 2, 1, false});
 
+    // Declared before the application so it outlives the systems that reference it.
+    a2e::AudioManager audio(a2e::create_audio_backend());
+    audio.set_sound_volume(0.4);
+    auto bump_sound = std::make_shared<a2e::AudioClip>(a2e::AudioClip::tone(220.0, 0.08));
+
     a2e::Application application(config, std::move(scene), std::make_unique<a2e::Basic2DRenderer>());
     application.resources().register_resource("marker_texture", marker_texture);
-    application.events().subscribe<a2e::CollisionEnterEvent>([](const a2e::CollisionEnterEvent& event) {
+    application.resources().register_resource("bump_sound", bump_sound);
+    application.events().subscribe<a2e::CollisionEnterEvent>([&audio, bump_sound](const a2e::CollisionEnterEvent& event) {
         a2e::log_info("collision entered between entities " + std::to_string(event.first_entity) +
                       " and " + std::to_string(event.second_entity));
+        if (!event.trigger) audio.play_sound(bump_sound);
     });
     application.add_system(std::make_unique<a2e::PlayerController>(player.id(), 180.0));
     application.add_system(std::make_unique<CameraControlSystem>(application.camera(), player.id()));
     application.add_system(std::make_unique<MouseMarkerSystem>(application.camera(), marker.id(),
                                                                 config.width, config.height));
+    application.add_system(std::make_unique<a2e::AnimationSystem>(&application.events()));
+    application.add_system(std::make_unique<a2e::AudioSystem>(audio));
     application.add_fixed_system(std::make_unique<a2e::PhysicsSystem>(a2e::PhysicsSystem::CollisionCallback{}, 0.0,
                                                                        &application.events(), 0.05));
     return application.run();
