@@ -5,6 +5,7 @@
 
 #include "a2e/a2e.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -437,6 +438,136 @@ void player_controller_works() {
     assert(rejected);
 }
 
+void animation_works() {
+    const auto clip = a2e::AnimationClip::from_grid(8, 8, 2, 1, 3, 0.1);
+    assert(clip.frames.size() == 3);
+    assert(clip.frames[0].source_x == 8 && clip.frames[0].source_y == 0);
+    assert(clip.frames[1].source_x == 0 && clip.frames[1].source_y == 8);
+    assert(std::abs(clip.length() - 0.3) < 1e-9);
+
+    a2e::Scene scene("Animation Scene");
+    auto& hero = scene.create_entity("Hero");
+    auto texture = std::make_shared<a2e::Texture>(16, 16, std::vector<std::uint32_t>(256, 0x00FFFFFF));
+    hero.set_sprite({texture});
+    auto& animator = hero.add_component<a2e::Animator>();
+    animator.add_state("walk", clip);
+    auto once = clip;
+    once.loop = false;
+    animator.add_state("attack", once);
+    assert(animator.state() == "walk");
+
+    a2e::EventBus events;
+    std::string finished_state;
+    events.subscribe<a2e::AnimationFinishedEvent>([&finished_state](const a2e::AnimationFinishedEvent& event) {
+        finished_state = event.state;
+    });
+    a2e::AnimationSystem system(&events);
+    system.update(scene, a2e::InputState{}, 0.15);
+    assert(animator.frame_index() == 1);
+    assert(hero.sprite()->source_x == 0 && hero.sprite()->source_y == 8);
+    system.update(scene, a2e::InputState{}, 0.2);
+    assert(animator.frame_index() == 0);
+
+    assert(animator.play("attack"));
+    assert(!animator.play("missing"));
+    system.update(scene, a2e::InputState{}, 0.5);
+    assert(animator.finished());
+    assert(animator.frame_index() == 2);
+    assert(finished_state == "attack");
+    finished_state.clear();
+    system.update(scene, a2e::InputState{}, 0.5);
+    assert(finished_state.empty());
+    assert(animator.play("attack", true));
+    assert(!animator.finished() && animator.frame_index() == 0);
+
+    bool rejected = false;
+    try { animator.add_state("empty", a2e::AnimationClip{}); }
+    catch (const std::invalid_argument&) { rejected = true; }
+    assert(rejected);
+}
+
+class RecordingAudioBackend final : public a2e::AudioBackend {
+public:
+    struct Play {
+        double volume;
+        bool loop;
+    };
+    a2e::SoundHandle play(std::shared_ptr<const a2e::AudioClip>, double volume, bool loop) override {
+        plays.push_back({volume, loop});
+        playing.push_back(next);
+        return next++;
+    }
+    void stop(a2e::SoundHandle handle) override {
+        playing.erase(std::remove(playing.begin(), playing.end(), handle), playing.end());
+    }
+    void stop_all() override { playing.clear(); }
+    bool is_playing(a2e::SoundHandle handle) const override {
+        return std::find(playing.begin(), playing.end(), handle) != playing.end();
+    }
+    void update() override { ++updates; }
+
+    std::vector<Play> plays;
+    std::vector<a2e::SoundHandle> playing;
+    a2e::SoundHandle next = 1;
+    int updates = 0;
+};
+
+void audio_works() {
+    const auto tone = std::make_shared<a2e::AudioClip>(a2e::AudioClip::tone(440.0, 0.5, 0.5, 8000));
+    assert(tone->samples.size() == 4000);
+    assert(std::abs(tone->duration() - 0.5) < 1e-9);
+    assert(tone->samples.front() == 0);
+    const auto loudest = *std::max_element(tone->samples.begin(), tone->samples.end());
+    assert(loudest > 16000 && loudest <= 16384);
+
+    a2e::NullAudioBackend silent;
+    const auto one_shot = silent.play(tone, 1.0, false);
+    const auto looping = silent.play(tone, 1.0, true);
+    assert(!silent.is_playing(one_shot));
+    assert(silent.is_playing(looping));
+    silent.stop(looping);
+    assert(!silent.is_playing(looping));
+
+    auto backend = std::make_unique<RecordingAudioBackend>();
+    auto& device = *backend;
+    a2e::AudioManager audio(std::move(backend));
+    audio.set_master_volume(0.5);
+    audio.set_sound_volume(2.0);
+    assert(audio.sound_volume() == 1.0);
+    audio.play_sound(tone, 0.5);
+    assert(device.plays.back().volume == 0.25);
+    assert(!device.plays.back().loop);
+
+    audio.set_music_volume(0.8);
+    const auto first_music = audio.play_music(tone);
+    assert(device.plays.back().loop);
+    assert(std::abs(device.plays.back().volume - 0.4) < 1e-9);
+    const auto second_music = audio.play_music(tone);
+    assert(!audio.is_playing(first_music));
+    assert(audio.is_playing(second_music));
+    audio.stop_music();
+    assert(audio.music() == 0);
+    assert(!audio.is_playing(second_music));
+
+    a2e::Scene scene("Audio Scene");
+    auto& speaker = scene.create_entity("Speaker");
+    auto& source = speaker.add_component<a2e::AudioSource>();
+    source.clip = tone;
+    source.loop = true;
+    source.play();
+    a2e::AudioSystem system(audio);
+    system.update(scene, a2e::InputState{}, 0.016);
+    assert(source.handle != 0);
+    assert(audio.is_playing(source.handle));
+    assert(!source.play_requested);
+    assert(device.updates == 1);
+    const auto speaker_handle = source.handle;
+    speaker.set_active(false);
+    system.update(scene, a2e::InputState{}, 0.016);
+    assert(!audio.is_playing(speaker_handle));
+    assert(source.handle == 0);
+}
+
 } // namespace
 
 int main() {
@@ -450,5 +581,7 @@ int main() {
     physics_material_response_works();
     physics_substeps_reduce_tunneling();
     player_controller_works();
+    animation_works();
+    audio_works();
     std::cout << "Engine tests passed\n";
 }
