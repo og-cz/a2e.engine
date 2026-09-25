@@ -568,6 +568,117 @@ void audio_works() {
     assert(source.handle == 0);
 }
 
+void pathfinding_works() {
+    a2e::NavigationGrid grid(5, 5, 10.0);
+    grid.allow_diagonal = false;
+    auto path = a2e::find_path(grid, {0, 0}, {4, 0});
+    assert(path.size() == 5);
+    assert(path.front() == (a2e::GridCell{0, 0}) && path.back() == (a2e::GridCell{4, 0}));
+
+    for (int y = 0; y < 4; ++y) grid.set_walkable({2, y}, false);
+    path = a2e::find_path(grid, {0, 0}, {4, 0});
+    assert(path.size() == 13);
+    for (const auto& cell : path) assert(!grid.is_blocked(cell));
+    assert(a2e::find_path(grid, {0, 0}, {4, 0}) == path);
+
+    grid.set_walkable({2, 4}, false);
+    assert(a2e::find_path(grid, {0, 0}, {4, 0}).empty());
+    assert(a2e::find_path(grid, {0, 0}, {2, 0}).empty());
+    assert(a2e::find_path(grid, {1, 1}, {1, 1}).size() == 1);
+
+    a2e::NavigationGrid diagonal(3, 3, 1.0);
+    assert(a2e::find_path(diagonal, {0, 0}, {2, 2}).size() == 3);
+    diagonal.set_walkable({1, 0}, false);
+    diagonal.set_walkable({0, 1}, false);
+    assert(a2e::find_path(diagonal, {0, 0}, {2, 2}).empty());
+
+    a2e::NavigationGrid costly(3, 3, 1.0);
+    costly.allow_diagonal = false;
+    costly.set_cost({1, 0}, 10.0);
+    path = a2e::find_path(costly, {0, 0}, {2, 0});
+    assert(path.size() == 5);
+    assert(std::find(path.begin(), path.end(), a2e::GridCell{1, 0}) == path.end());
+
+    a2e::TileMap tiles(3, 2, 16.0);
+    tiles.set_tile(1, 0, 0x00FF0000);
+    const auto from_tiles = a2e::NavigationGrid::from_tilemap(tiles, [](std::uint32_t tile) { return tile == 0; });
+    assert(from_tiles.cell_size() == 16.0);
+    assert(!from_tiles.is_walkable({1, 0}) && from_tiles.is_walkable({1, 1}));
+
+    a2e::NavigationGrid obstacles(4, 4, 10.0);
+    obstacles.add_obstacle_rect(12.0, 12.0, 28.0, 20.0);
+    assert(obstacles.has_obstacle({1, 1}) && obstacles.has_obstacle({2, 1}));
+    assert(!obstacles.has_obstacle({1, 2}) && !obstacles.has_obstacle({3, 1}));
+    assert(obstacles.is_walkable({1, 1}) && obstacles.is_blocked({1, 1}));
+    obstacles.clear_obstacles();
+    assert(!obstacles.is_blocked({1, 1}));
+    assert(!obstacles.is_blocked({0, 0}) && obstacles.is_blocked({-1, 0}));
+    assert(obstacles.world_to_cell(15.0, 39.9) == (a2e::GridCell{1, 3}));
+    assert(!obstacles.world_to_cell(-0.1, 5.0));
+    assert(obstacles.cell_center({1, 3}) == std::make_pair(15.0, 35.0));
+
+    bool rejected = false;
+    try { costly.set_cost({0, 0}, 0.5); }
+    catch (const std::invalid_argument&) { rejected = true; }
+    assert(rejected);
+}
+
+void navigation_agents_work() {
+    a2e::NavigationGrid grid(6, 3, 10.0);
+    grid.allow_diagonal = false;
+    for (int y = 0; y < 2; ++y) grid.set_walkable({3, y}, false);
+
+    a2e::Scene scene("Navigation Scene");
+    auto& npc = scene.create_entity("NPC");
+    npc.transform().x = 5.0;
+    npc.transform().y = 5.0;
+    auto& agent = npc.add_component<a2e::NavigationAgent>();
+    agent.speed = 20.0;
+    agent.set_destination(55.0, 5.0);
+
+    a2e::EventBus events;
+    int arrived = 0;
+    int failed = 0;
+    events.subscribe<a2e::NavigationArrivedEvent>([&arrived](const a2e::NavigationArrivedEvent&) { ++arrived; });
+    events.subscribe<a2e::NavigationFailedEvent>([&failed](const a2e::NavigationFailedEvent&) { ++failed; });
+    a2e::NavigationSystem navigation(grid, &events);
+
+    navigation.update(scene, a2e::InputState{}, 0.25);
+    assert(agent.status == a2e::NavigationStatus::Moving);
+    assert(npc.transform().x == 10.0 && npc.transform().y == 5.0);
+    for (int frame = 0; frame < 100 && agent.status == a2e::NavigationStatus::Moving; ++frame) {
+        navigation.update(scene, a2e::InputState{}, 0.25);
+        const auto cell = grid.world_to_cell(npc.transform().x, npc.transform().y);
+        assert(cell && grid.is_walkable(*cell));
+    }
+    assert(agent.status == a2e::NavigationStatus::Arrived);
+    assert(std::abs(npc.transform().x - 55.0) <= agent.arrival_distance);
+    assert(std::abs(npc.transform().y - 5.0) <= agent.arrival_distance);
+    assert(arrived == 1 && failed == 0);
+
+    agent.set_destination(5.0, 5.0);
+    navigation.update(scene, a2e::InputState{}, 0.1);
+    assert(agent.status == a2e::NavigationStatus::Moving);
+    grid.add_obstacle({3, 2});
+    navigation.update(scene, a2e::InputState{}, 0.1);
+    assert(agent.status == a2e::NavigationStatus::Unreachable);
+    assert(failed == 1);
+
+    grid.clear_obstacles();
+    auto& runner = scene.create_entity("Runner");
+    runner.transform().x = 5.0;
+    runner.transform().y = 25.0;
+    runner.set_rigid_body({0.0, 0.0, true});
+    runner.add_component<a2e::NavigationAgent>().set_destination(55.0, 25.0);
+    npc.remove_component<a2e::NavigationAgent>();
+    navigation.update(scene, a2e::InputState{}, 0.1);
+    assert(runner.transform().x == 5.0);
+    assert(runner.rigid_body()->velocity_x == 120.0);
+    assert(runner.rigid_body()->velocity_y == 0.0);
+    runner.get_component<a2e::NavigationAgent>()->stop();
+    assert(runner.get_component<a2e::NavigationAgent>()->status == a2e::NavigationStatus::Idle);
+}
+
 } // namespace
 
 int main() {
@@ -583,5 +694,7 @@ int main() {
     player_controller_works();
     animation_works();
     audio_works();
+    pathfinding_works();
+    navigation_agents_work();
     std::cout << "Engine tests passed\n";
 }
