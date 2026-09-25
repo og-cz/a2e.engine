@@ -1,3 +1,8 @@
+// Tests rely on assert, so keep it active even in Release builds.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
 #include "a2e/a2e.hpp"
 
 #include <cassert>
