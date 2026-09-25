@@ -6,6 +6,7 @@
 #include "a2e/a2e.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -395,6 +396,47 @@ void physics_substeps_reduce_tunneling() {
     assert(rejected);
 }
 
+void player_controller_works() {
+    a2e::Scene scene("Controller Scene");
+    auto& walker = scene.create_entity("Walker");
+    a2e::PlayerController controller(walker.id(), 100.0);
+
+    a2e::InputState input;
+    input.set_key(a2e::Key::D, true);
+    controller.update(scene, input, 0.5);
+    assert(walker.transform().x == 50.0);
+    assert(walker.transform().y == 0.0);
+
+    input.set_key(a2e::Key::S, true);
+    controller.update(scene, input, 1.0);
+    const double diagonal = 100.0 / std::sqrt(2.0);
+    assert(std::abs(walker.transform().x - (50.0 + diagonal)) < 1e-9);
+    assert(std::abs(walker.transform().y - diagonal) < 1e-9);
+
+    walker.set_rigid_body({0.0, 0.0, true});
+    input.set_key(a2e::Key::S, false);
+    const double before_x = walker.transform().x;
+    controller.update(scene, input, 1.0);
+    assert(walker.transform().x == before_x);
+    assert(walker.rigid_body()->velocity_x == 100.0);
+    assert(walker.rigid_body()->velocity_y == 0.0);
+    input.set_key(a2e::Key::D, false);
+    controller.update(scene, input, 1.0);
+    assert(walker.rigid_body()->velocity_x == 0.0);
+
+    a2e::GamepadState gamepad;
+    controller.set_gamepad(&gamepad);
+    gamepad.set_left_stick(0.1, -0.5);
+    controller.update(scene, input, 1.0);
+    assert(walker.rigid_body()->velocity_x == 0.0);
+    assert(walker.rigid_body()->velocity_y == -50.0);
+
+    bool rejected = false;
+    try { controller.set_speed(-1.0); }
+    catch (const std::invalid_argument&) { rejected = true; }
+    assert(rejected);
+}
+
 } // namespace
 
 int main() {
@@ -407,5 +449,6 @@ int main() {
     physics_work();
     physics_material_response_works();
     physics_substeps_reduce_tunneling();
-    std::cout << "Phase 1, Phase 2, and Phase 3 tests passed\n";
+    player_controller_works();
+    std::cout << "Engine tests passed\n";
 }
