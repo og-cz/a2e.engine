@@ -6,36 +6,6 @@
 
 namespace {
 
-class PlayerControlSystem final : public a2e::UpdateSystem {
-public:
-    PlayerControlSystem() {
-        actions_.bind("move_left", a2e::Key::A);
-        actions_.bind("move_left", a2e::Key::Left);
-        actions_.bind("move_right", a2e::Key::D);
-        actions_.bind("move_right", a2e::Key::Right);
-        actions_.bind("move_up", a2e::Key::W);
-        actions_.bind("move_up", a2e::Key::Up);
-        actions_.bind("move_down", a2e::Key::S);
-        actions_.bind("move_down", a2e::Key::Down);
-    }
-
-    void update(a2e::Scene& scene, const a2e::InputState& input, double delta_seconds) override {
-        auto* player = scene.find_entity(player_id_);
-        if (!player) return;
-        const double speed = 180.0;
-        if (actions_.is_action_down(input, "move_left")) player->transform().x -= speed * delta_seconds;
-        if (actions_.is_action_down(input, "move_right")) player->transform().x += speed * delta_seconds;
-        if (actions_.is_action_down(input, "move_up")) player->transform().y -= speed * delta_seconds;
-        if (actions_.is_action_down(input, "move_down")) player->transform().y += speed * delta_seconds;
-    }
-
-    void set_player_id(std::uint64_t id) { player_id_ = id; }
-
-private:
-    a2e::InputMap actions_;
-    std::uint64_t player_id_ = 0;
-};
-
 class CameraControlSystem final : public a2e::UpdateSystem {
 public:
     CameraControlSystem(a2e::Camera& camera, std::uint64_t target_id)
@@ -148,9 +118,7 @@ int main() {
         a2e::log_info("collision entered between entities " + std::to_string(event.first_entity) +
                       " and " + std::to_string(event.second_entity));
     });
-    auto controls = std::make_unique<PlayerControlSystem>();
-    controls->set_player_id(player.id());
-    application.add_system(std::move(controls));
+    application.add_system(std::make_unique<a2e::PlayerController>(player.id(), 180.0));
     application.add_system(std::make_unique<CameraControlSystem>(application.camera(), player.id()));
     application.add_system(std::make_unique<MouseMarkerSystem>(application.camera(), marker.id(),
                                                                 config.width, config.height));
