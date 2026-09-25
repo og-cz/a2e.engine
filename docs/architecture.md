@@ -1,4 +1,4 @@
-# A2E Phase 1 Architecture
+# A2E Architecture
 
 A2E is a reusable 2D engine, not a game and not an AI model. The repository keeps engine code under `engine/` and composition/example code under `examples/`.
 
@@ -23,8 +23,15 @@ A2E is a reusable 2D engine, not a game and not an AI model. The repository keep
 - `ResourceManager` is a typed cache boundary for future assets.
 - `Texture` is a resource-owned pixel surface and `Sprite` is entity data that references shared texture resources; renderers consume these through `RenderTarget`.
 - Logging is a small replaceable free-function boundary.
+- `PlayerController` is a reusable, action-driven movement system. It moves dynamic bodies through velocity and other entities through their transform (see `docs/phase-4.md`).
+- `Animator` is an ordinary entity component; `AnimationSystem` writes the current frame into the entity's `Sprite`, so the renderer never needs to know about animation (see `docs/phase-5.md`).
+- `AudioBackend` is the replaceable playback device. `AudioManager` applies volume categories, and `AudioSource` components let gameplay request sounds without touching the device. `NullAudioBackend` keeps tests and headless runs silent and deterministic.
+- `NavigationGrid`, `find_path`, and `NavigationSystem` provide grid navigation independent of any AI. Gameplay or future agents choose destinations; navigation plans and follows paths (see `docs/phase-6.md`).
+- Window output is letterboxed: the backbuffer keeps the configured size and is scaled to fit the client area, with mouse coordinates mapped back into backbuffer space.
 
 ## Loop
+
+A typical frame registers systems in this order: input-driven controllers, gameplay rules, navigation, animation, and audio as variable-rate systems, with physics as a fixed-rate system. Order is chosen by the application at registration time, not hard-coded by the engine.
 
 `Application::run()` creates the configured window, polls events, samples a bounded delta time, invokes the optional update callback, clears and renders the scene, presents, then sleeps for the remainder of the target frame period. `stop()` closes the window and the destructor repeats that cleanup defensively.
 
