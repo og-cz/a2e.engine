@@ -1,5 +1,6 @@
 #include "a2e/window.hpp"
 
+#include <algorithm>
 #include <stdexcept>
 #include <optional>
 #include <utility>
@@ -31,9 +32,12 @@ public:
         RegisterClassW(&window_class);
 
         std::wstring wide_title(title.begin(), title.end());
+        // Size the outer window so the client area matches the requested render size.
+        RECT frame{0, 0, width_, height_};
+        AdjustWindowRect(&frame, WS_OVERLAPPEDWINDOW, FALSE);
         hwnd_ = CreateWindowExW(0, class_name, wide_title.c_str(), WS_OVERLAPPEDWINDOW,
-                                CW_USEDEFAULT, CW_USEDEFAULT, width_, height_, nullptr, nullptr,
-                                window_class.hInstance, this);
+                                CW_USEDEFAULT, CW_USEDEFAULT, frame.right - frame.left, frame.bottom - frame.top,
+                                nullptr, nullptr, window_class.hInstance, this);
         if (!hwnd_) throw std::runtime_error("could not create A2E Win32 window");
         dc_ = GetDC(hwnd_);
         backbuffer_ = CreateCompatibleDC(dc_);
@@ -58,8 +62,12 @@ public:
             } else if (message.message == WM_KEYUP || message.message == WM_SYSKEYUP) {
                 if (const auto key = to_key(message.wParam)) input_.set_key(*key, false);
             } else if (message.message == WM_MOUSEMOVE) {
-                input_.set_mouse_position(static_cast<short>(LOWORD(message.lParam)),
-                                          static_cast<short>(HIWORD(message.lParam)));
+                // Convert client coordinates back into backbuffer coordinates after scaling.
+                const auto view = viewport();
+                const double client_x = static_cast<short>(LOWORD(message.lParam));
+                const double client_y = static_cast<short>(HIWORD(message.lParam));
+                input_.set_mouse_position(static_cast<int>((client_x - view.left) * width_ / view.width),
+                                          static_cast<int>((client_y - view.top) * height_ / view.height));
             } else if (message.message == WM_MOUSEWHEEL) {
                 input_.set_mouse_wheel(GET_WHEEL_DELTA_WPARAM(message.wParam));
             } else if (message.message == WM_LBUTTONDOWN || message.message == WM_LBUTTONUP ||
@@ -125,7 +133,25 @@ public:
     }
 
     void present() override {
-        BitBlt(dc_, 0, 0, width_, height_, backbuffer_, 0, 0, SRCCOPY);
+        RECT client{};
+        GetClientRect(hwnd_, &client);
+        const auto view = viewport();
+        if (view.left == 0 && view.top == 0 && view.width == width_ && view.height == height_) {
+            BitBlt(dc_, 0, 0, width_, height_, backbuffer_, 0, 0, SRCCOPY);
+            return;
+        }
+        // Letterbox: scale the fixed-size frame to fit and clear the remaining bars.
+        HBRUSH bars = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
+        const RECT left_bar{0, 0, view.left, client.bottom};
+        const RECT right_bar{view.left + view.width, 0, client.right, client.bottom};
+        const RECT top_bar{0, 0, client.right, view.top};
+        const RECT bottom_bar{0, view.top + view.height, client.right, client.bottom};
+        FillRect(dc_, &left_bar, bars);
+        FillRect(dc_, &right_bar, bars);
+        FillRect(dc_, &top_bar, bars);
+        FillRect(dc_, &bottom_bar, bars);
+        SetStretchBltMode(dc_, COLORONCOLOR);
+        StretchBlt(dc_, view.left, view.top, view.width, view.height, backbuffer_, 0, 0, width_, height_, SRCCOPY);
     }
 
     void close() override {
@@ -154,6 +180,27 @@ public:
     std::int32_t height() const override { return height_; }
 
 private:
+    struct Viewport {
+        int left;
+        int top;
+        int width;
+        int height;
+    };
+
+    // Largest aspect-preserving rectangle for the backbuffer inside the current client area.
+    Viewport viewport() const {
+        RECT client{};
+        GetClientRect(hwnd_, &client);
+        const int client_width = client.right - client.left;
+        const int client_height = client.bottom - client.top;
+        if (client_width <= 0 || client_height <= 0) return {0, 0, width_, height_};
+        const double scale = (std::min)(static_cast<double>(client_width) / width_,
+                                      static_cast<double>(client_height) / height_);
+        const int view_width = (std::max)(1, static_cast<int>(width_ * scale));
+        const int view_height = (std::max)(1, static_cast<int>(height_ * scale));
+        return {(client_width - view_width) / 2, (client_height - view_height) / 2, view_width, view_height};
+    }
+
     static std::optional<Key> to_key(WPARAM key) {
         switch (key) {
         case VK_ESCAPE: return Key::Escape;
@@ -186,6 +233,14 @@ private:
             auto* create = reinterpret_cast<CREATESTRUCTW*>(lparam);
             self = static_cast<Win32Window*>(create->lpCreateParams);
             SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        }
+        if (message == WM_ERASEBKGND) return 1;
+        if (self && message == WM_PAINT) {
+            PAINTSTRUCT paint{};
+            BeginPaint(hwnd, &paint);
+            if (self->backbuffer_) self->present();
+            EndPaint(hwnd, &paint);
+            return 0;
         }
         if (self && message == WM_CLOSE) {
             self->open_ = false;
