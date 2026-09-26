@@ -22,6 +22,7 @@ enum class Key : std::size_t {
     S,
     ZoomIn,
     ZoomOut,
+    F1,
     Count
 };
 
