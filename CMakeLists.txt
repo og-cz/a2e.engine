@@ -34,6 +34,9 @@ endif()
 add_executable(a2e_demo examples/basic_scene.cpp)
 target_link_libraries(a2e_demo PRIVATE a2e_engine)
 
+add_executable(a2e_agents_demo examples/autonomous_agents.cpp)
+target_link_libraries(a2e_agents_demo PRIVATE a2e_engine)
+
 add_executable(a2e_tests tests/phase1_tests.cpp)
 target_link_libraries(a2e_tests PRIVATE a2e_engine)
 
