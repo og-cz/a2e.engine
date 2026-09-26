@@ -1,5 +1,7 @@
 #pragma once
 
+#include "a2e/agent.hpp"
+#include "a2e/agent_memory.hpp"
 #include "a2e/animation.hpp"
 #include "a2e/application.hpp"
 #include "a2e/audio.hpp"
@@ -11,6 +13,7 @@
 #include "a2e/logging.hpp"
 #include "a2e/navigation.hpp"
 #include "a2e/renderer.hpp"
+#include "a2e/perception.hpp"
 #include "a2e/physics.hpp"
 #include "a2e/player_controller.hpp"
 #include "a2e/resources.hpp"
