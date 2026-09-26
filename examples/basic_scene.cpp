@@ -114,6 +114,19 @@ private:
     double retry_timer_ = 0.0;
 };
 
+class DebugToggleSystem final : public a2e::UpdateSystem {
+public:
+    explicit DebugToggleSystem(a2e::DebugRenderer& debug) : debug_(debug) { actions_.bind("toggle_debug", a2e::Key::F1); }
+
+    void update(a2e::Scene&, const a2e::InputState& input, double) override {
+        if (actions_.is_action_pressed(input, "toggle_debug")) debug_.toggle();
+    }
+
+private:
+    a2e::DebugRenderer& debug_;
+    a2e::InputMap actions_;
+};
+
 } // namespace
 
 int main() {
@@ -195,7 +208,11 @@ int main() {
     audio.set_sound_volume(0.4);
     auto bump_sound = std::make_shared<a2e::AudioClip>(a2e::AudioClip::tone(220.0, 0.08));
 
-    a2e::Application application(config, std::move(scene), std::make_unique<a2e::Basic2DRenderer>());
+    // Debug overlay starts hidden; F1 shows colliders, the NPC path, and the player's obstacle cells.
+    auto debug = std::make_unique<a2e::DebugRenderer>(std::make_unique<a2e::Basic2DRenderer>(), &navigation_grid);
+    debug->set_enabled(false);
+    auto& debug_view = *debug;
+    a2e::Application application(config, std::move(scene), std::move(debug));
     application.resources().register_resource("marker_texture", marker_texture);
     application.resources().register_resource("bump_sound", bump_sound);
     application.events().subscribe<a2e::CollisionEnterEvent>([&audio, bump_sound](const a2e::CollisionEnterEvent& event) {
@@ -212,6 +229,7 @@ int main() {
     application.add_system(std::make_unique<a2e::NavigationSystem>(navigation_grid, &application.events()));
     application.add_system(std::make_unique<a2e::AnimationSystem>(&application.events()));
     application.add_system(std::make_unique<a2e::AudioSystem>(audio));
+    application.add_system(std::make_unique<DebugToggleSystem>(debug_view));
     application.add_fixed_system(std::make_unique<a2e::PhysicsSystem>(a2e::PhysicsSystem::CollisionCallback{}, 0.0,
                                                                        &application.events(), 0.05));
     return application.run();
