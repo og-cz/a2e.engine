@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(a2e_engine
+    engine/src/agent.cpp
+    engine/src/agent_memory.cpp
     engine/src/animation.cpp
     engine/src/application.cpp
     engine/src/audio.cpp
@@ -14,6 +16,7 @@ add_library(a2e_engine
     engine/src/config.cpp
     engine/src/logging.cpp
     engine/src/navigation.cpp
+    engine/src/perception.cpp
     engine/src/physics.cpp
     engine/src/scene.cpp
     engine/src/time.cpp
@@ -33,5 +36,9 @@ target_link_libraries(a2e_demo PRIVATE a2e_engine)
 add_executable(a2e_tests tests/phase1_tests.cpp)
 target_link_libraries(a2e_tests PRIVATE a2e_engine)
 
+add_executable(a2e_ai_tests tests/ai_tests.cpp)
+target_link_libraries(a2e_ai_tests PRIVATE a2e_engine)
+
 enable_testing()
 add_test(NAME phase1_tests COMMAND a2e_tests)
+add_test(NAME ai_tests COMMAND a2e_ai_tests)
