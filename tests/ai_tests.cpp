@@ -4,6 +4,7 @@
 #endif
 
 #include "a2e/agent.hpp"
+#include "a2e/debug_renderer.hpp"
 #include "a2e/navigation.hpp"
 
 #include <cassert>
@@ -257,6 +258,76 @@ void agent_loop_works() {
     assert(agent.stats().decisions > 0);
 }
 
+class CountingTarget final : public a2e::RenderTarget {
+public:
+    std::int32_t width() const override { return 320; }
+    std::int32_t height() const override { return 200; }
+    void clear(std::uint32_t) override {}
+    void fill_rectangle(double, double, double, double, std::uint32_t) override { ++rectangles; }
+    void fill_polygon(const std::vector<std::pair<double, double>>& points, std::uint32_t) override {
+        assert(points.size() == 4);
+        ++polygons;
+    }
+    void draw_texture(const a2e::Texture&, int, int, int, int, double, double, double, double) override {}
+    void present() override {}
+    int rectangles = 0;
+    int polygons = 0;
+};
+
+class CountingRenderer final : public a2e::Renderer {
+public:
+    explicit CountingRenderer(int& calls) : calls_(calls) {}
+    void render(const a2e::Scene&, a2e::RenderTarget&, const a2e::Camera&) override { ++calls_; }
+
+private:
+    int& calls_;
+};
+
+void debug_overlay_works() {
+    a2e::Scene scene("Debug Scene");
+    auto& wall = scene.create_entity("Wall");
+    wall.set_collider({20.0, 20.0, 1, 1, false});
+    auto& guard = scene.create_entity("Guard");
+    auto& agent = guard.add_component<a2e::Agent>();
+    agent.add_sensor(std::make_shared<a2e::VisionSensor>(50.0, pi / 2.0));
+    agent.memory.remember({3, "seen", "player", 10.0, 10.0, 0.0, 1.0});
+    agent.memory.remember({4, "heard", "noise", 20.0, 10.0, 0.0, 0.5});
+
+    a2e::NavigationGrid grid(4, 4, 10.0);
+    grid.add_obstacle({1, 1});
+    int scene_renders = 0;
+    a2e::DebugRenderer debug(std::make_unique<CountingRenderer>(scene_renders), &grid);
+    CountingTarget target;
+    const a2e::Camera camera{0.0, 0.0, 1.0};
+
+    debug.render(scene, target, camera);
+    assert(scene_renders == 1);
+    // Obstacle box (4) + collider box (4) + vision cone (2 edges + 12 arc segments) + 2 memory markers.
+    assert(debug.overlay_primitives() == 4 + 4 + 14 + 2);
+    assert(target.polygons == 22 && target.rectangles == 2);
+
+    debug.options().agent_vision = false;
+    debug.options().obstacles = false;
+    debug.render(scene, target, camera);
+    assert(debug.overlay_primitives() == 4 + 2);
+
+    debug.toggle();
+    assert(!debug.enabled());
+    debug.render(scene, target, camera);
+    assert(scene_renders == 3);
+    assert(debug.overlay_primitives() == 0);
+
+    CountingTarget line_target;
+    a2e::draw_debug_line(line_target, 5.0, 5.0, 5.0, 5.0, 0);
+    a2e::draw_debug_line(line_target, 0.0, 0.0, 10.0, 0.0, 0);
+    assert(line_target.rectangles == 1 && line_target.polygons == 1);
+
+    bool rejected = false;
+    try { a2e::DebugRenderer invalid(nullptr); }
+    catch (const std::invalid_argument&) { rejected = true; }
+    assert(rejected);
+}
+
 } // namespace
 
 int main() {
@@ -264,5 +335,6 @@ int main() {
     memory_works();
     goals_and_rules_work();
     agent_loop_works();
+    debug_overlay_works();
     std::cout << "AI tests passed\n";
 }
