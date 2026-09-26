@@ -211,6 +211,7 @@ private:
         case VK_ADD: return Key::ZoomIn;
         case VK_OEM_MINUS:
         case VK_SUBTRACT: return Key::ZoomOut;
+        case VK_F1: return Key::F1;
         default: return std::nullopt;
         }
     }
