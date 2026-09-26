@@ -7,6 +7,7 @@
 #include "a2e/audio.hpp"
 #include "a2e/camera.hpp"
 #include "a2e/config.hpp"
+#include "a2e/debug_renderer.hpp"
 #include "a2e/entity.hpp"
 #include "a2e/events.hpp"
 #include "a2e/input.hpp"
