@@ -14,6 +14,7 @@ add_library(a2e_engine
     engine/src/basic_2d_renderer.cpp
     engine/src/camera.cpp
     engine/src/config.cpp
+    engine/src/debug_renderer.cpp
     engine/src/logging.cpp
     engine/src/navigation.cpp
     engine/src/perception.cpp
