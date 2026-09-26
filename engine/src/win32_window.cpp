@@ -104,9 +104,12 @@ public:
         native_points.reserve(points.size());
         for (const auto& [x, y] : points) native_points.push_back({static_cast<LONG>(x), static_cast<LONG>(y)});
         HBRUSH brush = CreateSolidBrush(to_colorref(color));
+        // No outline pen, so polygons match fill_rectangle and thin shapes keep their color.
+        const auto previous_pen = SelectObject(backbuffer_, GetStockObject(NULL_PEN));
         SelectObject(backbuffer_, brush);
         Polygon(backbuffer_, native_points.data(), static_cast<int>(native_points.size()));
         SelectObject(backbuffer_, GetStockObject(NULL_BRUSH));
+        SelectObject(backbuffer_, previous_pen);
         DeleteObject(brush);
     }
 
